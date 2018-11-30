@@ -4,8 +4,10 @@ from keras.layers import Conv2D
 from keras.layers import Dropout, Flatten, Dense, Input,Reshape,  MaxPooling2D, Masking
 from keras.layers.merge import concatenate
 from keras.engine import Layer
+import matplotlib.pyplot as plt
 
 import dummy
+import numpy as np
 
 from keras.layers import Lambda
 import tensorflow as tf
@@ -16,34 +18,35 @@ def UpSampling2DBilinear(output_shape, **kwargs):
     return Lambda(layer, **kwargs)
 
 
-class LambdaMask(Layer):
-    '''
-    muck up the mask, deliberately.
-    '''
-    def __init__(self, func, *args, **kwargs):
-        self.func = func
-        self.supports_masking = True
-        super(LambdaMask, self).__init__(*args, **kwargs)
-
-    def compute_mask(self, x, mask=None):
-        return self.func(x, mask)
-
-    def call(self, x, mask=None):
-        return x
-
-
 
 img_h = 120
 img_w = 160
 img_c = 3
 
 
+def my_custom_loss(y_true, y_pred):
+    pass
+
+
+
 
 if __name__ == "__main__":
 
 
+
     #load data
     X_train, Y_train = dummy.load_data(dummy.dirname1, dummy.dirname2)
+
+    # N images of 3 channels, data is scaled and normalized to mean 0 and std 1 across the channels separately.
+    X_train = dummy.feature_normalize_rgb(X_train)
+
+    # create masks with 0 and 1 for Y_train where all greater than 0 values are 1
+    Y_mask = Y_train.copy()
+    Y_mask[Y_mask > 0] = 1
+
+    #count pixel with values
+
+    Y_count = dummy.count_pixels_with_depth(Y_mask)
 
     # input shape
     input1 = Input(shape=(img_h,img_w,img_c))
@@ -76,13 +79,33 @@ if __name__ == "__main__":
     concatenated = concatenate([scale1,scale2])
     scale2 = Conv2D(64, 5, strides=1, padding='same', activation='relu', data_format="channels_last")(concatenated)
     # last layer has linear activiation
-    scale2 = Conv2D(64, 5, strides=1, padding='same', activation='linear', data_format="channels_last")(scale2)
+    scale2 = Conv2D(1, 5, strides=1, padding='same', activation='linear', data_format="channels_last")(scale2)
 
-    scale2_model = Model(inputs=input1, outputs=scale2)
+    scale2_reshaped = Reshape((56, 76))(scale2)
+    scale2_model = Model(inputs=input1, outputs=scale2_reshaped)
     scale2_model.compile(optimizer='sgd', loss='mse', metrics=['mse'])  # Compile the model
     print(scale2_model.summary())  # Summarize the model
 
     #fit scale1_model only to train scale1 and then fit scale2_model only and train scale2 only.
-    scale1_model.fit(x=X_train,y=Y_train,batch_size=10,epochs=1)
+    #scale1_model.fit(x=X_train,y=Y_train,batch_size=10,epochs=10)
+
+    scale2_model.fit(x=X_train,y=Y_train,batch_size=10,epochs=2)
+
+    X_test, Y_test = dummy.load_test_data("/home/p4bhattachan/PycharmProjects/syde770/images/test_rgb/","/home/p4bhattachan/PycharmProjects/syde770/images/test_depth/")
+
+    # create masks with 0 and 1 for Y_train where all greater than 0 values are 1
+    Y_tmask = Y_test.copy()
+    Y_tmask[Y_tmask > 0] = 1
+
+    X_test = dummy.feature_normalize_rgb(X_test)
+    My_results = scale2_model.predict(X_test,batch_size=3)
+
+    results = np.multiply(My_results,Y_tmask)
+
+    for i in [0,1,2]:
+        plt.imshow(results[i], cmap="gray")
+        plt.show()
+        plt.imshow(Y_test[i])
+        plt.show
 
     q=5
