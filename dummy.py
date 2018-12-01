@@ -31,6 +31,20 @@ def move(source_dir,destination_dir,match_str):
 
     print("total files = {} number of files moved = {}".format(j,i))
 
+def copy_RS_depth(source_dir,destination_dir,match_str):
+    i = 0
+    j = 0
+
+    for f in os.listdir(source):
+        j += 1
+        if match_str in f:
+            filename = source_dir + f
+
+            shutil.copy(filename, destination_dir)
+            i += 1
+
+    print("total files = {} number of files moved = {}".format(j,i))
+
 def copy(source_dir,destination_dir,num=100):
     j = 0
 
@@ -168,6 +182,10 @@ def load_data(dirname_rgb,dirname_d):
     Y = Y.astype('float32')
 
     return(X, Y, Ymask)
+
+
+
+
 
 def load_10_data(dirname_rgb,dirname_d):
     myX = []
@@ -332,6 +350,8 @@ dirname1 = "/home/p4bhattachan/PycharmProjects/syde770/images/rgb100/"
 dirname2 = "/home/p4bhattachan/PycharmProjects/syde770/images/depth100/"
 
 if __name__ == "__main__":
+
+    copy_RS_depth("/home/p4bhattachan/gripper/Data/Images", )
 
     #move(source,destination,"depth")
     #copy("/home/p4bhattachan/PycharmProjects/syde770/images/rgb/","/home/p4bhattachan/PycharmProjects/syde770/images/rgb100/")

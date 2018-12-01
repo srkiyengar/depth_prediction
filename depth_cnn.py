@@ -6,7 +6,7 @@ from keras.layers.merge import concatenate
 from keras.engine import Layer
 import matplotlib.pyplot as plt
 
-import dummy
+import prepare
 import numpy as np
 
 import keras.backend as K
@@ -43,7 +43,8 @@ def myLossFunction(y_true,y_pred,ymask):
 
 
 
-
+dirname1 = "/home/p4bhattachan/PycharmProjects/syde770/images/rgb/"
+dirname2 = "/home/p4bhattachan/PycharmProjects/syde770/images/depth/"
 
 
 if __name__ == "__main__":
@@ -51,11 +52,12 @@ if __name__ == "__main__":
 
 
     #load data
-    X_train, Y_train, Y_mask = dummy.load_data(dummy.dirname1, dummy.dirname2)
+    X_train, Y_train, Y_mask = prepare.load_more_data(dirname1, dirname2,500)
 
     # N images of 3 channels, data is scaled and normalized to mean 0 and std 1 across the channels separately.
-    X_train = dummy.feature_normalize_rgb(X_train)
+    X_train = prepare.feature_normalize_rgb(X_train)
     Y_train = np.log(Y_train+1)
+    #Y_train = np.log(Y_train)
     # input shape
     input1 = Input(shape=(img_h,img_w,img_c))
     ymask_input = Input(shape=(56,76))
@@ -106,15 +108,24 @@ if __name__ == "__main__":
     #scale1_model.fit(x=X_train,y=Y_train,batch_size=10,epochs=10)
 
     # checkpoint = ModelCheckpoint()
-    hist = scale2_model.fit(x=[X_train,Y_mask],y=Y_train,validation_split=0.2, batch_size=10,epochs=100)
+    hist = scale2_model.fit(x=[X_train,Y_mask],y=Y_train,validation_split=0.2, batch_size=10,epochs=50)
 
-    X_test, Y_test = dummy.load_test_data("/home/p4bhattachan/PycharmProjects/syde770/images/test_rgb/","/home/p4bhattachan/PycharmProjects/syde770/images/test_depth/")
+    X_test, Y_test = prepare.load_test_data("/home/p4bhattachan/PycharmProjects/syde770/images/test_rgb/","/home/p4bhattachan/PycharmProjects/syde770/images/test_depth/")
 
     # create masks with 0 and 1 for Y_train where all greater than 0 values are 1
 
 
-    X_test = dummy.feature_normalize_rgb(X_test)
+    X_test = prepare.feature_normalize_rgb(X_test)
     My_results = scale2_model.predict([X_test,np.zeros((X_test.shape[0],56,76))],batch_size=3)
+
+    print(hist.history.keys())
+    plt.plot(hist.history['loss'])
+    plt.plot(hist.history['val_loss'])
+    plt.title('model accuracy')
+    plt.ylabel('accuracy')
+    plt.xlabel('epoch')
+    plt.legend(['train', 'validation'], loc='upper left')
+    plt.show()
 
 
     for i in [0,1,2]:
