@@ -72,8 +72,8 @@ def copy_and_rescale_images(rgb_dir, depth_dir, new_size):
 
         for d in os.listdir(depth_dir):
             if f[:6] in d:
-                img = np.load(depth_dir + d)
-                new_depth_image = resize(img,(new_size[0], new_size[1]), anti_aliasing=True)
+                d_img = np.load(depth_dir + d)
+                new_depth_image = resize(d_img,(new_size[0], new_size[1]), anti_aliasing=True)
                 new_depth_file = depth_dir + d[:15] + "_reshaped" + ".npy"
                 np.save(new_rgb_file, new_rgb_image)
                 np.save(new_depth_file, new_depth_image)
@@ -83,6 +83,27 @@ def copy_and_rescale_images(rgb_dir, depth_dir, new_size):
         if (j > 99):
             break
 
+def copy_and_rescale_images_for_testing(rgb_dir, depth_dir, new_size):
+    j = 0
+    des_dir = "/home/p4bhattachan/PycharmProjects/syde770/images/test/"
+    for f in os.listdir(rgb_dir):
+        if (j > 200):
+            img = np.load(rgb_dir + f)
+            new_rgb_image = resize(img, (new_size[0], new_size[1]), anti_aliasing=True)
+            new_rgb_file = des_dir + f[:15] + "_reshaped" + ".npy"
+
+            for d in os.listdir(depth_dir):
+                if f[:6] in d:
+                    d_img = np.load(depth_dir + d)
+                    new_depth_image = resize(d_img, (new_size[0], new_size[1]), anti_aliasing=True)
+                    new_depth_file = des_dir + d[:15] + "_reshaped" + ".npy"
+                    np.save(new_rgb_file, new_rgb_image)
+                    np.save(new_depth_file, new_depth_image)
+                    j += 1
+                    break
+        j +=1
+        if (j > 205):
+            break
 
 #image scaling
 def image_rescale(dirname,new_size):
@@ -137,7 +158,56 @@ def load_data(dirname_rgb,dirname_d):
         if("reshaped" in file_name ):
             myY.append(np.load(file_name))
 
+    X = np.asanyarray(myX)
+    Y = np.asanyarray(myY)
+    Ymask = Y.copy()
+
+    Ymask[Ymask > 0] = 1
+    Ymask = Ymask.astype('float32')
+    X = X.astype('float32')
+    Y = Y.astype('float32')
+
+    return(X, Y, Ymask)
+
+def load_10_data(dirname_rgb,dirname_d):
+    myX = []
+    myY = []
+
+    j = 0
+
+    for f in os.listdir(dirname_rgb):
+        if (j<10):
+            rgbfile_name = dirname_rgb + f
+
+            for d in os.listdir(dirname_d):
+                if f[:6] in d:
+                    dfile_name = dirname_d + d
+                    myX.append(np.load(rgbfile_name))
+                    myY.append(np.load(dfile_name))
+                    j+=1
+                    break
+        else:
+            break
+    return (np.asanyarray(myX), np.asanyarray(myY))
+
+
+def load_test_data(dirname_rgb,dirname_d):
+
+    myX = []
+    myY = []
+
+    for f in os.listdir(dirname_rgb):
+        file_name = dirname_rgb + f
+        if("reshaped" in file_name ):
+            myX.append(np.load(file_name))
+
+    for f in os.listdir(dirname_d):
+        file_name = dirname_d + f
+        if("reshaped" in file_name ):
+            myY.append(np.load(file_name))
+
     return(np.asanyarray(myX), np.asanyarray(myY))
+
 
 # Given an N images of 3 channels, it will scale and normalize the image
 # to mean 0 and std 1 across the channels separately.
@@ -169,8 +239,21 @@ def feature_normalize_rgb(x):
 
     return p
 
-# log function using the function in paper by Eigen et al.
-# the y_true and y_pred are log of the depth values
+
+# count the n pixels with non-zero depth for the N depth images
+def count_pixels_with_depth(y):
+    num = y.shape[0]
+    N = []
+
+    for i in range(num):
+        count = 0
+        for j in range(y.shape[1]):
+            for k in range(y.shape[2]):
+                if y[i, j, k] == 1:
+                    count += 1
+        N.append(count)
+    return N
+
 
 def depth_loss(y_true, y_pred):
 
@@ -255,13 +338,13 @@ if __name__ == "__main__":
     #copy("/home/p4bhattachan/PycharmProjects/syde770/images/depth/","/home/p4bhattachan/PycharmProjects/syde770/images/depth100/")
 
     #dirname = "/home/p4bhattachan/PycharmProjects/syde770/images/rgb100/"
-    dirname = "/home/p4bhattachan/PycharmProjects/syde770/images/depth100/"
+    #dirname = "/home/p4bhattachan/PycharmProjects/syde770/images/depth100/"
     #image_detail(dirname)
-    image_rescale(dirname,(56,76))
+    image_rescale("/home/p4bhattachan/PycharmProjects/syde770/images/test_depth/",(56,76))
     #view_scaled_files(dirname)
     #rotate_images(dirname)
 
-    #copy_and_rescale_images("/home/p4bhattachan/PycharmProjects/syde770/images/rgb/","/home/p4bhattachan/PycharmProjects/syde770/images/depth/",(120,160))
+    copy_and_rescale_images_for_testing("/home/p4bhattachan/PycharmProjects/syde770/images/rgb/","/home/p4bhattachan/PycharmProjects/syde770/images/depth/",(120,160))
 
     # load data
     X_train, Y_train = load_data(dirname1, dirname2)
